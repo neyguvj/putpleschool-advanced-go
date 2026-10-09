@@ -3,10 +3,10 @@ package send
 import (
 	"advancedgo/internal/email/config"
 	"advancedgo/internal/email/storage"
+	"advancedgo/pkg/request"
 	"advancedgo/pkg/response"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"log"
 	"net"
@@ -32,13 +32,8 @@ func NewSendHandler(router *http.ServeMux, cfg *config.Config, storage *storage.
 
 func (h *SendHandler) Send() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req SendRequest
-		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
-			response.ErrorResponse(w, http.StatusBadRequest, errors.New("invalid JSON body"))
-			return
-		}
-
-		if err := req.Validate(); err != nil {
+		req, err := request.DecodeAndValidate[SendRequest](w, r)
+		if err != nil {
 			response.ErrorResponse(w, http.StatusBadRequest, err)
 			return
 		}

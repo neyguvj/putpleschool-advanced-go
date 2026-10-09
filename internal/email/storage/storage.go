@@ -19,9 +19,13 @@ func (s *Storage) Put(hash string, email string) {
 	s.data[hash] = email
 }
 
-func (s *Storage) Get(hash string) (string, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Storage) Pop(hash string) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	email, ok := s.data[hash]
-	return email, ok
+	if !ok {
+		return "", false
+	}
+	delete(s.data, hash)
+	return email, true
 }

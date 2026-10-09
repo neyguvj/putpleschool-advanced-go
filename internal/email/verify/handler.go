@@ -23,7 +23,7 @@ func (h *Verifyhandler) Verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue("hash")
 
-		emailAddr, ok := h.storage.Get(hash)
+		emailAddr, ok := h.storage.Pop(hash)
 		if !ok {
 			response.ErrorResponse(w, http.StatusNotFound, errors.New("invalid or expired hash"))
 			return
