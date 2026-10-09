@@ -44,7 +44,11 @@ func (h *SendHandler) Send() http.HandlerFunc {
 			return
 		}
 
-		h.storage.Put(hash, req.Email)
+		if err := h.storage.Put(hash, req.Email); err != nil {
+			log.Printf("storage put: %v", err)
+			response.ErrorResponse(w, http.StatusInternalServerError, errors.New("failed to save hash"))
+			return
+		}
 
 		host, _, err := net.SplitHostPort(h.cfg.SmtpAddr)
 		if err != nil {

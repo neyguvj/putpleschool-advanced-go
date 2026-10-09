@@ -4,6 +4,7 @@ import (
 	"advancedgo/internal/email/storage"
 	"advancedgo/pkg/response"
 	"errors"
+	"log"
 	"net/http"
 )
 
@@ -23,12 +24,17 @@ func (h *Verifyhandler) Verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue("hash")
 
-		emailAddr, ok := h.storage.Pop(hash)
+		emailAddr, ok, err := h.storage.Pop(hash)
+		if err != nil {
+			log.Printf("storage pop: %v", err)
+			response.ErrorResponse(w, http.StatusInternalServerError, errors.New("failed to verify hash"))
+			return
+		}
 		if !ok {
 			response.ErrorResponse(w, http.StatusNotFound, errors.New("invalid or expired hash"))
 			return
 		}
 
-		response.OkResponse(w, http.StatusOK, VerifyResponse{Message: "verified", Email: emailAddr})
+		response.OkResponse(w, http.StatusOK, VerifyResponse{Verified: true, Email: emailAddr})
 	}
 }

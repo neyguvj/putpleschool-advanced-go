@@ -16,7 +16,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	storage := storage.NewStorage()
+	storage := storage.NewStorage("storage.json")
 	router := http.NewServeMux()
 	send.NewSendHandler(router, cfg, storage)
 	verify.NewVerifyHandler(router, storage)
