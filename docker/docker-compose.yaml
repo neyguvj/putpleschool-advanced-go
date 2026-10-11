@@ -1,0 +1,53 @@
+x-db-env: &db-env
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  POSTGRES_DB: ${POSTGRES_DB:-advancedgo}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: advancedgo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-advancedgo}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-advancedgo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrations:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: advancedgo:latest
+    command: ["/bin/migrations"]
+    restart: "no"
+    environment:
+      <<: *db-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server:
+    image: advancedgo:latest
+    command: ["/bin/server"]
+    restart: "no"
+    environment:
+      <<: *db-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
