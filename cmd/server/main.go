@@ -1,9 +1,14 @@
 package main
 
 import (
+	"errors"
 	"log"
+	"net/http"
 
+	"advancedgo/internal/migrations"
+	"advancedgo/internal/product"
 	"advancedgo/pkg/db"
+	"advancedgo/pkg/logging"
 )
 
 func main() {
@@ -18,9 +23,27 @@ func main() {
 	}
 	log.Println("connected to postgres")
 
-	var count int64
-	if err := gdb.Table("products").Count(&count).Error; err != nil {
-		log.Fatalf("select from products: %v", err)
+	if err := migrations.Migrate(gdb); err != nil {
+		log.Fatalf("migrate: %v", err)
 	}
-	log.Printf("select ok, products: %d", count)
+
+	logger := logging.NewLogger()
+
+	productHandler := product.NewHandler(product.NewRepository(gdb))
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	productHandler.RegisterRoutes(mux)
+
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: logging.Middleware(logger)(mux),
+	}
+
+	log.Println("listening on :8080")
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("serve: %v", err)
+	}
 }
