@@ -29,7 +29,7 @@ func main() {
 
 	logger := logging.NewLogger()
 
-	productHandler := product.NewHandler(product.NewRepository(gdb))
+	productHandler := product.NewHandler(product.NewRepository(gdb), logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {

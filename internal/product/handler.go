@@ -10,14 +10,16 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus"
 )
 
 type Handler struct {
-	repo Repository
+	repo   Repository
+	logger logrus.FieldLogger
 }
 
-func NewHandler(repo Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(repo Repository, logger logrus.FieldLogger) *Handler {
+	return &Handler{repo: repo, logger: logger}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
@@ -35,11 +37,15 @@ type upsertRequest struct {
 }
 
 func (r upsertRequest) toProduct() *Product {
+	images := r.Images
+	if images == nil {
+		images = []string{}
+	}
 	return &Product{
 		Name:        r.Name,
 		Description: r.Description,
 		Price:       r.Price,
-		Images:      pq.StringArray(r.Images),
+		Images:      pq.StringArray(images),
 	}
 }
 
@@ -134,7 +140,8 @@ func (h *Handler) writeError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrNotFound):
 		response.ErrorResponse(w, http.StatusNotFound, err)
 	default:
-		response.ErrorResponse(w, http.StatusInternalServerError, err)
+		h.logger.WithError(err).Error("unexpected error")
+		response.ErrorResponse(w, http.StatusInternalServerError, nil)
 	}
 }
 
